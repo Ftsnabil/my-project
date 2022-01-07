@@ -92,6 +92,46 @@ router.post('/search-users',(req,res)=>{
 
 })
 
+router.get('/all-user',async(req,res)=>{
+    try {
+        const users = await User.find();
+        return res.status(200).json({
+            users
+        })
+    } catch (err) {
+       return res.status(500).json({
+           error: err.message
+       }) 
+    }
+
+})
+
+router.delete('/users/:id', async(req,res)=>{
+    try {
+        const user = await User.findById(req.params.id)
+        if ( !user ) {
+            return res.status(404).json({
+                message: 'user do not exist'
+            })
+       } else if (!user.isAdmin) {
+        return res.status(404).json({
+            message: 'you are not admin'
+        })
+       }else {
+           await User.findByIdAndDelete(req.body.id)
+           return res.status(200).json({
+            message: 'user is deleted'
+        })
+       }
+    } catch (err) {
+        return res.status(500).json({
+            message: err.message
+        })
+    }
+    
+
+})
+
 
 
 module.exports = router

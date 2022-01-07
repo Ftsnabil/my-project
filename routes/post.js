@@ -5,7 +5,7 @@ const requireLogin  = require('../middleware/requireLogin')
 const Post =  mongoose.model("Post")
 
 
-router.get('/allpost',requireLogin,(req,res)=>{
+router.get('/allpost',(req,res)=>{
     Post.find()
     .populate("postedBy","_id name")
     .populate("comments.postedBy","_id name")
@@ -113,14 +113,42 @@ router.put('/comment',requireLogin,(req,res)=>{
     })
 })
 
+router.put('/delete-comment',requireLogin, async(req,res)=>{
+    
+   try {
+       const curentPost = await Post.findById(req.body.id)
+       if (curentPost.postedBy !== req.user._id) {
+           return res.status(404).json({
+               message: "you can not delete this comment "
+           })
+       }
+    const post = await Post.findByIdAndUpdate(req.body.id, {
+        $pull:{comments: {
+            _id: req.body.commentId
+        }}
+    },{
+        new:true
+    })
+    return res.status(200).json({
+        message: 'comment deleted',
+        post
+    })
+   } catch (err) {
+    return res.status(500).json({
+        message: err.message
+    })
+   }
+})
+
 router.delete('/deletepost/:postId',requireLogin,(req,res)=>{
+
     Post.findOne({_id:req.params.postId})
     .populate("postedBy","_id")
     .exec((err,post)=>{
         if(err || !post){
             return res.status(422).json({error:err})
         }
-        if(post.postedBy._id.toString() === req.user._id.toString()){
+        if(post.postedBy._id.toString() === req.user._id.toString() || req.user.isAdmin){
               post.remove()
               .then(result=>{
                   res.json(result)
